@@ -158,74 +158,77 @@
 
 
       const usernameForm = document.getElementById('usernameForm');
-      const usernameInput = document.getElementById('usernameInput');
-      const form = document.getElementById('form');
-      const input = document.getElementById('input');
-      const messages = document.getElementById('messages');
+    const usernameInput = document.getElementById('usernameInput');
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
 
-      let username = localStorage.getItem('username') || '';
+    let username = '';
 
-      if (username) {
-        socket.emit('join', { username });
-        usernameInput.value = username;
-        usernameInput.disabled = true;
-        usernameForm.style.display = 'none';
-      } else {
-        usernameInput.value = '';
-      }
+    // Check if localStorage is available
+    if (isLocalStorageAvailable()) {
+        username = localStorage.getItem('username') || '';
 
-      usernameForm.addEventListener('submit', (e) => {
+        if (username) {
+            socket.emit('join', { username });
+            usernameInput.value = username;
+            usernameInput.disabled = true;
+            usernameForm.style.display = 'none';
+        }
+    }
+
+    usernameForm.addEventListener('submit', (e) => {
         e.preventDefault();
         username = usernameInput.value.trim();
         if (username) {
-          localStorage.setItem('username', username);
-          socket.emit('join', { username });
-          usernameInput.disabled = true;
-          usernameForm.style.display = 'none';
+            if (isLocalStorageAvailable()) {
+                localStorage.setItem('username', username);
+            }
+            socket.emit('join', { username });
+            usernameInput.disabled = true;
+            usernameForm.style.display = 'none';
         }
-      });
+    });
 
-      
-
-      form.addEventListener('submit', async(e) => {
+    form.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (input.value) {
-            const batteryStatus = await getBatteryStatus(); // Get battery status
-            socket.emit('chat message', `${input.value} \n (${batteryStatus})`);
-          input.value = '';
+            const batteryStatus = await getBatteryStatus(); // Assuming getBatteryStatus is defined
+            socket.emit('chat message', `${input.value} (Battery: ${batteryStatus})`);
+            input.value = '';
         }
-      });
+    });
 
-      socket.on('chat message', (msg) => {
+    socket.on('chat message', (msg) => {
         addMessage(`${msg.username}: ${msg.message}`);
-      });
+    });
 
-      socket.on('chat history', (history) => {
+    socket.on('chat history', (history) => {
         messages.innerHTML = ''; 
         history.forEach((msg) => addMessage(`${msg.username}: ${msg.message}`));
-      });
+    });
 
-      socket.on('user connected', (username) => {
+    socket.on('user connected', (username) => {
         addMessage(`${username} joined the chat`, true);
-      });
+    });
 
-      socket.on('user disconnected', (username) => {
+    socket.on('user disconnected', (username) => {
         addMessage(`${username} left the chat`, true);
-      });
+    });
 
-      function addMessage(text, isItalic = false) {
+    function addMessage(text, isItalic = false) {
         const item = document.createElement('li');
-        item.innerHTML = text;
+        item.textContent = text;
         if (isItalic) {
-          item.style.fontStyle = 'italic';
+            item.style.fontStyle = 'italic';
         }
         messages.appendChild(item);
         if (messages.children.length > 15) {
-          messages.removeChild(messages.firstChild);
+            messages.removeChild(messages.firstChild);
         }
         messages.scrollTop = messages.scrollHeight; 
-      }
-    });
+    }
+});
   </script>
 </body>
 </html>
