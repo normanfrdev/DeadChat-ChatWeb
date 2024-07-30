@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: #121212;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      overflow: hidden;
+      flex-direction: column;
+      height: 100vh;
+    }
+    h1 {
+      text-align: center;
+      color: #bb86fc;
+      margin: 0;
+    }
+    #messages {
+      list-style-type: none;
+      padding: 0;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 10px;
+      flex-grow: 1;
+    }
+    #messages li {
+      padding: 12px;
+      background: #1e1e1e;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      transition: background 0.3s;
+    }
+    #messages li:hover {
+      background: #303030;
+    }
+    form {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .input-container {
+      position: relative;
+      flex: 1;
+      margin-right: 10px;
+    }
+    .input-container input {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      transition: border 0.3s;
+      font-size: 16px;
+      background: #1e1e1e;
+      color: #ffffff;
+    }
+    .input-container input:focus {
+      border-color: #bb86fc;
+      outline: none;
+    }
+    .input-container label {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      color: #999;
+      transition: 0.2s ease all;
+      pointer-events: none;
+    }
+    .input-container input:focus + label,
+    .input-container input:not(:placeholder-shown) + label {
+      top: -8px;
+      left: 10px;
+      font-size: 12px;
+      color: #bb86fc;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      background-color: #bb86fc;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 16px;
+    }
+    button:hover {
+      background-color: #9a67e0;
+    }
+    #usernameForm {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    #usernameInput {
+      padding: 10px;
+      border: 1px solid #444;
+      border-radius: 4px;
+      flex: 1;
+      margin-right: 10px;
+      font-size: 16px;
+      background: #1e1e1e;
+      color: #ffffff;
+    }
+    #saveUsername {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      background-color: #bb86fc;
+      color: #ffffff;
+      cursor: pointer;
+      transition: background 0.3s;
+      font-size: 16px;
+    }
+    #saveUsername:hover {
+      background-color: #9a67e0;
+    }
+  </style>
+</head>
+<body>
+  <form id="usernameForm">
+    <div class="input-container">
+      <input id="usernameInput" autocomplete="off" required placeholder=" " />
+      <label for="usernameInput">Enter your username</label>
+    </div>
+    <button id="saveUsername">Save</button>
+  </form>
+  <ul id="messages"></ul>
+  <form id="form">
+    <div class="input-container">
+      <input id="input" autocomplete="off" required placeholder=" " />
+      <label for="input">Type a message</label>
+    </div>
+    <button id="send">Send</button>
+  </form>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const socket = io();
+
+      const usernameForm = document.getElementById('usernameForm');
+      const usernameInput = document.getElementById('usernameInput');
+      const form = document.getElementById('form');
+      const input = document.getElementById('input');
+      const messages = document.getElementById('messages');
+
+      let username = localStorage.getItem('username') || '';
+
+      if (username) {
+        socket.emit('join', { username });
+        usernameInput.value = username;
+        usernameInput.disabled = true;
+        usernameForm.style.display = 'none';
+      } else {
+        usernameInput.value = '';
+      }
+
+      usernameForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        username = usernameInput.value.trim();
+        if (username) {
+          localStorage.setItem('username', username);
+          socket.emit('join', { username });
+          usernameInput.disabled = true;
+          usernameForm.style.display = 'none';
+        }
+      });
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (input.value) {
+          socket.emit('chat message', input.value);
+          input.value = '';
+        }
+      });
+
+      socket.on('chat message', (msg) => {
+        addMessage(`${msg.username}: ${msg.message}`);
+      });
+
+      socket.on('chat history', (history) => {
+        messages.innerHTML = ''; 
+        history.forEach((msg) => addMessage(`${msg.username}: ${msg.message}`));
+      });
+
+      socket.on('user connected', (username) => {
+        addMessage(`${username} joined the chat`, true);
+      });
+
+      socket.on('user disconnected', (username) => {
+        addMessage(`${username} left the chat`, true);
+      });
+
+      function addMessage(text, isItalic = false) {
+        const item = document.createElement('li');
+        item.textContent = text;
+        if (isItalic) {
+          item.style.fontStyle = 'italic';
+        }
+        messages.appendChild(item);
+        if (messages.children.length > 15) {
+          messages.removeChild(messages.firstChild);
+        }
+        messages.scrollTop = messages.scrollHeight; 
+      }
+    });
+  </script>
+</body>
+</html>
