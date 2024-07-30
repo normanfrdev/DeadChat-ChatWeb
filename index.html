@@ -139,8 +139,23 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+
+    async function getBatteryStatus() {
+        if ('getBattery' in navigator) {
+            const battery = await navigator.getBattery();
+            const level = (battery.level * 100).toFixed(0); 
+            return `${level}%`;
+        } else {
+            return 'Battery Status API not supported.';
+        }
+    }
+
+
+
     document.addEventListener('DOMContentLoaded', () => {
       const socket = io();
+
+
 
       const usernameForm = document.getElementById('usernameForm');
       const usernameInput = document.getElementById('usernameInput');
@@ -170,10 +185,13 @@
         }
       });
 
-      form.addEventListener('submit', (e) => {
+      
+
+      form.addEventListener('submit', async(e) => {
         e.preventDefault();
         if (input.value) {
-          socket.emit('chat message', input.value);
+            const batteryStatus = await getBatteryStatus(); // Get battery status
+            socket.emit('chat message', `${input.value} \n (${batteryStatus})`);
           input.value = '';
         }
       });
@@ -197,7 +215,7 @@
 
       function addMessage(text, isItalic = false) {
         const item = document.createElement('li');
-        item.textContent = text;
+        item.innerHTML = text;
         if (isItalic) {
           item.style.fontStyle = 'italic';
         }
